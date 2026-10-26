@@ -57,6 +57,7 @@
         :tone="row.tone"
         :note="row.note"
         :action-label="row.actionLabel"
+        :action-icon="row.actionIcon"
         :problem="row.problem"
         :muted="row.muted"
         :switching="row.switching"
@@ -161,7 +162,8 @@ const startStore = useDeploymentStartStore()
 const sectionLabelId = useId()
 useKeepRowFocus(sections)
 
-const buildsUrl = `${getComfyPlatformBaseUrl()}/profile/builds`
+const platformUrl = getComfyPlatformBaseUrl()
+const buildsUrl = `${platformUrl}/profile/builds`
 
 const buildsLink = computed(() =>
   deployments.value.length > 0
@@ -195,7 +197,10 @@ const defaultGone = computed(() => goneDefaultDeploymentId.value !== null)
 
 const notice = computed(() => {
   if (goneDeployment.value === 'pick') return t('deploymentSwitcher.pickGone')
-  if (pickedRow.value?.action === 'start') {
+  if (
+    pickedRow.value?.action === 'start' ||
+    pickedRow.value?.action === 'open'
+  ) {
     return t(
       'deploymentSwitcher.pickStopped',
       { deployment: currentLabel.value },
@@ -229,9 +234,22 @@ function chooseRow(event: Event, row: DeploymentRow) {
     choose(event, row.deploymentId)
     return
   }
+  if (row.deploymentId === null) return
+  if (row.action === 'open') {
+    openDeploymentPage(row.deploymentId)
+    return
+  }
   event.preventDefault()
-  if (row.action === 'none' || row.deploymentId === null) return
+  if (row.action === 'none') return
   void startStore.start(row.deploymentId)
+}
+
+function openDeploymentPage(deploymentId: string) {
+  window.open(
+    `${platformUrl}/profile/deployments/${encodeURIComponent(deploymentId)}`,
+    '_blank',
+    'noopener,noreferrer'
+  )
 }
 
 function choose(event: Event, deploymentId: string | null) {

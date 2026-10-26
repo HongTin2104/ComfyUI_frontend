@@ -4,7 +4,6 @@ import type { WorkspaceDeployment } from '@/platform/workspace/api/workspaceApi'
 export type DeploymentStartRefusal =
   | 'noCredits'
   | 'tooManyRunning'
-  | 'notAllowed'
   | 'unavailable'
   | 'failed'
 
@@ -36,7 +35,7 @@ export type DeploymentStartEvent =
   | { type: 'listed'; deployments: readonly WorkspaceDeployment[] }
 
 /** What choosing a deployment's row does. */
-export type DeploymentRowAction = 'pick' | 'start' | 'retry' | 'none'
+export type DeploymentRowAction = 'pick' | 'start' | 'retry' | 'open' | 'none'
 
 const STARTING_STATUSES = new Set(['queued', 'provisioning', 'starting'])
 const STARTABLE_STATUSES = new Set(['stopped', 'failed'])
@@ -97,15 +96,11 @@ export function reduceDeploymentStarts(
   }
 }
 
-const FINAL_REFUSALS = new Set<DeploymentStartRefusal>([
-  'notAllowed',
-  'unavailable'
-])
-
 /**
  * What choosing a row does: only a ready deployment is picked. A stopped or
- * failed one is started when Start is offered, and a refused Start is retried
- * unless retrying cannot help.
+ * failed one is started when Start is offered, else it opens on the Developer
+ * Platform. A refused Start is retried, or opened there when this editor cannot
+ * start it.
  */
 export function deploymentRowAction(
   status: string,
@@ -113,11 +108,12 @@ export function deploymentRowAction(
   { startOffered }: { startOffered: boolean }
 ): DeploymentRowAction {
   if (start?.phase === 'refused') {
-    return FINAL_REFUSALS.has(start.reason) ? 'none' : 'retry'
+    return start.reason === 'unavailable' ? 'open' : 'retry'
   }
   if (start) return 'none'
   if (status === 'ready') return 'pick'
-  return startOffered && STARTABLE_STATUSES.has(status) ? 'start' : 'none'
+  if (!STARTABLE_STATUSES.has(status)) return 'none'
+  return startOffered ? 'start' : 'open'
 }
 
 /** Why a row cannot be picked, when the row itself does not already say. */
@@ -126,7 +122,6 @@ export type DeploymentRowReason =
   | 'failed'
   | 'starting'
   | 'startElsewhere'
-  | 'notAllowed'
   | 'notReady'
 
 export function deploymentRowReason(
@@ -134,10 +129,7 @@ export function deploymentRowReason(
   action: DeploymentRowAction,
   start: DeploymentStart | undefined
 ): DeploymentRowReason | null {
-  if (start?.phase === 'refused') {
-    return start.reason === 'notAllowed' ? 'notAllowed' : null
-  }
-  if (action === 'pick') return null
+  if (start?.phase === 'refused' || action === 'pick') return null
   if (start || STARTING_STATUSES.has(status)) return 'starting'
   if (action === 'start') return status === 'failed' ? 'failed' : 'stopped'
   return STARTABLE_STATUSES.has(status) ? 'startElsewhere' : 'notReady'
