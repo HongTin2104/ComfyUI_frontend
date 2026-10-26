@@ -126,12 +126,16 @@ function onOpenChange(open: boolean) {
   if (open) void store.load()
 }
 
+let pendingPoll: Promise<void> | undefined
 const startPoll = useIntervalFn(
-  () => void store.load(),
+  () => {
+    if (pendingPoll) return
+    pendingPoll = store.load().finally(() => {
+      pendingPoll = undefined
+    })
+  },
   DEPLOYMENT_START_POLL_MS,
-  {
-    immediate: false
-  }
+  { immediate: false }
 )
 watch(
   () => isOpen.value && isAnyStarting.value,
@@ -157,8 +161,11 @@ const triggerLabel = computed(() =>
 )
 function tooltipKey(): string {
   if (isReady.value) return 'deploymentSwitcher.currentTooltip'
-  if (pickedRow.value?.action === 'start') {
-    return 'deploymentSwitcher.stoppedStartTooltip'
+  const action = pickedRow.value?.action
+  if (action === 'start' || action === 'retry') {
+    return currentTone.value === 'failed'
+      ? 'deploymentSwitcher.failedStartTooltip'
+      : 'deploymentSwitcher.stoppedStartTooltip'
   }
   return currentTone.value === 'stopped' &&
     pickedDeployment.value?.status === 'stopped'

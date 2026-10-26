@@ -128,8 +128,15 @@ import { useDeploymentLabels } from '@/platform/workspace/composables/useDeploym
 import type { DeploymentRow } from '@/platform/workspace/composables/useDeploymentRows'
 import { useDeploymentRows } from '@/platform/workspace/composables/useDeploymentRows'
 import { useKeepRowFocus } from '@/platform/workspace/composables/useKeepRowFocus'
+import type { DeploymentRowAction } from '@/platform/workspace/deploymentStartState'
 import { useDeploymentPickStore } from '@/platform/workspace/stores/deploymentPickStore'
 import { useDeploymentStartStore } from '@/platform/workspace/stores/deploymentStartStore'
+
+const STOPPED_PICK_ACTIONS = new Set<DeploymentRowAction>([
+  'start',
+  'retry',
+  'open'
+])
 
 const { switchingTo } = defineProps<{
   /** The row last picked; it shows progress while a switch is in flight. */
@@ -197,12 +204,12 @@ const defaultGone = computed(() => goneDefaultDeploymentId.value !== null)
 
 const notice = computed(() => {
   if (goneDeployment.value === 'pick') return t('deploymentSwitcher.pickGone')
-  if (
-    pickedRow.value?.action === 'start' ||
-    pickedRow.value?.action === 'open'
-  ) {
+  const picked = pickedRow.value
+  if (picked && STOPPED_PICK_ACTIONS.has(picked.action)) {
     return t(
-      'deploymentSwitcher.pickStopped',
+      picked.tone === 'failed'
+        ? 'deploymentSwitcher.pickFailed'
+        : 'deploymentSwitcher.pickStopped',
       { deployment: currentLabel.value },
       { escapeParameter: false }
     )
