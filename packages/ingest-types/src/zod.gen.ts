@@ -52,6 +52,7 @@ export const zWorkspaceMemberCapabilities = z.object({
 export const zWorkspaceDeployment = z.object({
   build_id: z.string().optional(),
   build_name: z.string().optional(),
+  can_start: z.boolean(),
   created_at: z.iso.datetime(),
   deployment_id: z.string(),
   deployment_name: z.string().optional(),
@@ -2750,6 +2751,14 @@ export const zDeploymentNodeCompatibility = z.object({
  */
 export const zDeploymentCompatibilityRequest = z.object({
   node_types: z.array(z.string())
+})
+
+/**
+ * The deployment a start was asked for, and its status after the ask.
+ */
+export const zStartWorkspaceDeploymentResult = z.object({
+  deployment_id: z.string(),
+  status: z.string()
 })
 
 export const zCloudNodeCompatibility = z.object({
@@ -7156,6 +7165,16 @@ export const zCheckWorkspaceDeploymentCompatibilityPath = z.object({
  */
 export const zCheckWorkspaceDeploymentCompatibilityResponse =
   zDeploymentCompatibility
+
+export const zStartWorkspaceDeploymentPath = z.object({
+  id: z.string(),
+  deployment_id: z.string()
+})
+
+/**
+ * Accepted; the deployment is starting, or already up
+ */
+export const zStartWorkspaceDeploymentResponse = zStartWorkspaceDeploymentResult
 
 /**
  * The credential's workspace
