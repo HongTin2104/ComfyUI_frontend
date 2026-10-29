@@ -144,8 +144,9 @@ about 3% and did not change native typecheck wall time.
 
 ## Consequences
 
-- Graph-state needs an active Pinia, and its package tests reuse the testing
-  Pinia setup.
+- Graph-state needs an active Pinia. Its package tests run in the root
+  `frontend` Vitest project, whose setup installs a fresh testing Pinia per
+  test, and they import no app module.
 - Modules change paths, but their ownership rules (store identity, teardown,
   Y.Doc lifetime) do not.
 - The app keeps compiling litegraph's large public types, so typecheck time
